@@ -6,6 +6,8 @@ ENV CXX_PN libthrift
 ENV CXX_PACKAGE ${CXX_PN}_${THRIFT_VERSION}-${PACKAGE_REVISION}
 ENV C_PN libthriftc
 ENV C_PACKAGE ${C_PN}_${THRIFT_VERSION}-${PACKAGE_REVISION}
+ENV BIN_PN thrift
+ENV BIN_PACKAGE ${BIN_PN}_${THRIFT_VERSION}-${PACKAGE_REVISION}
 ENV PREFIX usr/local
 
 RUN apt-get update && apt install -y build-essential git autoconf automake libtool pkg-config libboost-all-dev bison flex curl libglib2.0-dev libssl-dev dh-make bzr-builddeb libevent-dev
@@ -67,3 +69,23 @@ RUN echo " These are the C (Glib) runtime libraries development files" >> DEBIAN
 RUN echo " for Apache Thrift" >> DEBIAN/control
 WORKDIR ..
 RUN dpkg-deb --build ${C_PACKAGE}
+
+WORKDIR ../thrift-${THRIFT_VERSION}
+RUN make -j`nproc --all` DESTDIR=`pwd`/../${BIN_PACKAGE} install
+WORKDIR ../${BIN_PACKAGE}
+# get rid of python2.7 directory (also uses wrong prefix)
+RUN rm -Rf usr/lib
+# get rid of non-binary artifacts
+RUN rm -Rf ${PREFIX}/lib ${PREFIX}/include
+RUN mkdir -p DEBIAN
+RUN echo "Package: ${BIN_PN}" > DEBIAN/control
+RUN echo "Version: ${THRIFT_VERSION}-${PACKAGE_REVISION}" >> DEBIAN/control
+RUN echo "Section: base" >> DEBIAN/control
+RUN echo "Priority: optional" >> DEBIAN/control
+RUN echo "Architecture: `dpkg --print-architecture`" >> DEBIAN/control
+#RUN echo "Depends: libevent-dev, libglib2.0, libssl, zlib1g" >> DEBIAN/control
+RUN echo "Maintainer: Christopher Friedt <chrisfriedt@gmail.com>" >> DEBIAN/control
+RUN echo "Description: Apache Thrift Compiler" >> DEBIAN/control
+RUN echo " The Apache Thrift compiler" >> DEBIAN/control
+WORKDIR ..
+RUN dpkg-deb --build ${BIN_PACKAGE}
