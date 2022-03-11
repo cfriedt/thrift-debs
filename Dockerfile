@@ -1,6 +1,6 @@
-FROM ubuntu:xenial
+FROM ubuntu:focal
 
-ENV THRIFT_VERSION 0.12.0
+ENV THRIFT_VERSION 0.16.0
 ENV PACKAGE_REVISION 1
 ENV CXX_PN libthrift
 ENV CXX_PACKAGE ${CXX_PN}_${THRIFT_VERSION}-${PACKAGE_REVISION}
@@ -9,6 +9,7 @@ ENV C_PACKAGE ${C_PN}_${THRIFT_VERSION}-${PACKAGE_REVISION}
 ENV BIN_PN thrift
 ENV BIN_PACKAGE ${BIN_PN}_${THRIFT_VERSION}-${PACKAGE_REVISION}
 ENV PREFIX usr/local
+ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update && apt install -y build-essential git autoconf automake libtool pkg-config libboost-all-dev bison flex curl libglib2.0-dev libssl-dev dh-make bzr-builddeb libevent-dev
 
@@ -17,13 +18,13 @@ RUN tar xpvzf thrift-${THRIFT_VERSION}.tar.gz
 WORKDIR thrift-${THRIFT_VERSION}
 RUN sh bootstrap.sh
 RUN ./configure --disable-python --disable-py3 --disable-tests
-RUN make -j`nproc --all`
+RUN make -j4
 
 # How to make a 'basic' .deb
 # See https://ubuntuforums.org/showthread.php?t=910717
 
 WORKDIR ../thrift-${THRIFT_VERSION}
-RUN make -j`nproc --all` DESTDIR=`pwd`/../${CXX_PACKAGE} install
+RUN make -j4 DESTDIR=`pwd`/../${CXX_PACKAGE} install
 WORKDIR ../${CXX_PACKAGE}
 # get rid of binaries (please install thrift-compiler for that)
 RUN rm -Rf ${PREFIX}/bin
@@ -46,7 +47,7 @@ WORKDIR ..
 RUN dpkg-deb --build ${CXX_PACKAGE}
 
 WORKDIR ../thrift-${THRIFT_VERSION}
-RUN make -j`nproc --all` DESTDIR=`pwd`/../${C_PACKAGE} install
+RUN make -j4 DESTDIR=`pwd`/../${C_PACKAGE} install
 WORKDIR ../${C_PACKAGE}
 # get rid of binaries (please install thrift-compiler for that)
 RUN rm -Rf ${PREFIX}/bin
@@ -71,7 +72,7 @@ WORKDIR ..
 RUN dpkg-deb --build ${C_PACKAGE}
 
 WORKDIR ../thrift-${THRIFT_VERSION}
-RUN make -j`nproc --all` DESTDIR=`pwd`/../${BIN_PACKAGE} install
+RUN make -j4 DESTDIR=`pwd`/../${BIN_PACKAGE} install
 WORKDIR ../${BIN_PACKAGE}
 # get rid of python2.7 directory (also uses wrong prefix)
 RUN rm -Rf usr/lib
